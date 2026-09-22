@@ -1,0 +1,35 @@
+# System & Temporary Files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.DS_Store
+Thumbs.db
+
+# Office temporary files
+~$*
+*.tmp
+
+# Local testing & scratch scripts
+test
+check_*.py
+inspect_*.py
+list_*.py
+search_*.py
+test_*.py
+update_docx.py
+extract_info.py
+render_flowchart.py
+create_flowchart.py
+generate_workflow.py
+node_summary.txt
+nodes_extracted.txt
+flowchart_template.html
+ikaaaaaaaaaaaaaaa*.docx
+AI Review Analyst Agent (Ika Agent) - Versi Ultimate Dewa (Dual Scraper Shopee & Gemini 3.5 Flash Lite) (1).json
+
+# Environment & Credentials
+.env
+*.key
+credentials/

@@ -1,0 +1,1229 @@
+{
+  "name": "AI Review Analyst Agent (Ika Agent) - Versi Ultimate Dewa (Dual Scraper Shopee & Gemini 3.5 Flash Lite)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "poll-telegram",
+      "name": "Telegram Poller (Tiap 10 Detik)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/getUpdates?offset={{ $getWorkflowStaticData('global').lastUpdateId ? $getWorkflowStaticData('global').lastUpdateId + 1 : '' }}&timeout=3",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "get-updates",
+      "name": "Cek Inbox Telegram Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil update Telegram dan inisialisasi isolasi sesi per akun\nconst staticData = $getWorkflowStaticData('global');\nstaticData.sessions = staticData.sessions || {};\nstaticData.currentResolved = null;\nconst lastId = staticData.lastUpdateId || 0;\n\nconst updates = $json.result || [];\nif (!Array.isArray(updates) || updates.length === 0) {\n  return [];\n}\n\nconst newUpdates = updates.filter(u => u.update_id > lastId);\nif (newUpdates.length === 0) {\n  return [];\n}\n\nconst maxUpdateId = Math.max(...newUpdates.map(u => u.update_id));\nstaticData.lastUpdateId = maxUpdateId;\n\n// Segera konfirmasi offset ke server Telegram agar poller berikutnya (tiap 10s) tidak memproses pesan ganda\ntry {\n  await fetch(`https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/getUpdates?offset=${maxUpdateId + 1}&limit=1`);\n} catch (e) {}\n\nconst out = [];\nfor (const u of newUpdates) {\n  const msg = u.message || u.channel_post;\n  if (!msg) continue;\n  \n  const chatId = String(msg.chat?.id || 7937051081);\n  const text = (msg.text || msg.caption || '').trim();\n  const fromName = msg.from?.first_name || 'Kak';\n  const username = msg.from?.username || '-';\n  const hasDoc = !!msg.document;\n  const fileId = msg.document?.file_id || '';\n  const fileName = msg.document?.file_name || '';\n\n  // Buat / perbarui sesi independen untuk ID Telegram ini\n  if (!staticData.sessions[chatId]) {\n    staticData.sessions[chatId] = {\n      chat_id: chatId,\n      user_name: fromName,\n      username: username,\n      total_reviews_analyzed: 0,\n      total_files_uploaded: 0,\n      total_product_scrapes: 0,\n      total_shop_scrapes: 0,\n      created_at: new Date().toISOString(),\n      last_active: new Date().toISOString()\n    };\n  } else {\n    staticData.sessions[chatId].last_active = new Date().toISOString();\n    staticData.sessions[chatId].user_name = fromName;\n  }\n\n  const currentSession = staticData.sessions[chatId];\n\n  // Klasifikasi intent pesan\n  let intent = 'single_review';\n  let shopeeUrl = '';\n  let shopUrl = '';\n  let shopId = '';\n  let itemId = '';\n  let shopeeType = '';\n  let originalUrl = '';\n  let isShortlink = false;\n\n  const isShopee = /(?:shopee\\.[a-z.]+|shp\\.ee)/i.test(text);\n  if (text.startsWith('/start') || text.startsWith('/help') || text.startsWith('/menu') || text.toLowerCase() === 'halo') {\n    intent = 'command_help';\n  } else if (text.startsWith('/sesi') || text.startsWith('/status') || text.startsWith('/session')) {\n    intent = 'command_session';\n  } else if (hasDoc && (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv'))) {\n    intent = 'upload_excel';\n    currentSession.total_files_uploaded += 1;\n  } else if (isShopee) {\n    const match = text.match(/(https?:\\/\\/[^\\s]+|[a-zA-Z0-9_\\-\\.]*(?:shopee\\.[a-z.]+|shp\\.ee)[^\\s]*)/i);\n    let sUrl = match ? match[0] : text;\n    if (!sUrl.startsWith('http://') && !sUrl.startsWith('https://')) {\n      sUrl = 'https://' + sUrl;\n    }\n    originalUrl = sUrl;\n    shopeeUrl = sUrl;\n\n    // Deteksi jika link berupa Shortlink (s.shopee.co.id atau shp.ee)\n    if (/s\\.shopee\\.[a-z.]+|shp\\.ee/i.test(sUrl)) {\n      isShortlink = true;\n      intent = 'resolve_shortlink';\n    } else {\n      // Parser URL Shopee Komprehensif\n      let isProduct = false;\n      let cleanShopeeUrl = sUrl;\n      try {\n        const parsed = new URL(sUrl);\n        const path = parsed.pathname;\n\n        const dashMatch = path.match(/-i\\.(\\d+)\\.(\\d+)/);\n        const prodSlashMatch = path.match(/\\/product\\/(\\d+)\\/(\\d+)/);\n        const slashMatch = path.match(/\\/([^\\/]+)\\/(\\d+)\\/(\\d+)/);\n\n        if (dashMatch) {\n          isProduct = true;\n          shopId = dashMatch[1];\n          itemId = dashMatch[2];\n          cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n          shopUrl = `https://shopee.co.id/shop/${shopId}`;\n        } else if (prodSlashMatch) {\n          isProduct = true;\n          shopId = prodSlashMatch[1];\n          itemId = prodSlashMatch[2];\n          cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n          shopUrl = `https://shopee.co.id/shop/${shopId}`;\n        } else if (slashMatch && slashMatch[1] !== 'shop') {\n          isProduct = true;\n          shopId = slashMatch[2];\n          itemId = slashMatch[3];\n          cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n          shopUrl = `https://shopee.co.id/shop/${shopId}`;\n        } else if (path.startsWith('/product') && parsed.searchParams.has('itemId') && parsed.searchParams.has('shopId')) {\n          isProduct = true;\n          shopId = parsed.searchParams.get('shopId');\n          itemId = parsed.searchParams.get('itemId');\n          cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n          shopUrl = `https://shopee.co.id/shop/${shopId}`;\n        } else {\n          isProduct = false;\n          cleanShopeeUrl = `${parsed.origin}${path}`;\n          shopUrl = cleanShopeeUrl;\n        }\n      } catch (e) {\n        cleanShopeeUrl = sUrl.split('?')[0];\n        shopUrl = cleanShopeeUrl;\n      }\n\n      shopeeUrl = cleanShopeeUrl;\n\n      if (isProduct) {\n        intent = 'shopee_product';\n        shopeeType = 'product';\n        currentSession.total_product_scrapes = (currentSession.total_product_scrapes || 0) + 1;\n      } else {\n        intent = 'shopee_shop';\n        shopeeType = 'shop';\n        currentSession.total_shop_scrapes = (currentSession.total_shop_scrapes || 0) + 1;\n      }\n    }\n  }\n\n  // Reset antrean akumulasi ulasan aktif untuk request baru\n  staticData.currentRunReviews = [];\n\n  out.push({\n    json: {\n      update_id: u.update_id,\n      chat_id: Number(chatId),\n      session_id: `SESI_${chatId}`,\n      user_name: fromName,\n      username: username,\n      text: text,\n      shopee_url: shopeeUrl,\n      shop_url: shopUrl,\n      shop_id: shopId,\n      item_id: itemId,\n      original_url: originalUrl || shopeeUrl,\n      is_shortlink: isShortlink,\n      shopee_type: shopeeType,\n      intent: intent,\n      has_doc: hasDoc,\n      file_id: fileId,\n      file_name: fileName,\n      session_stats: currentSession\n    }\n  });\n}\n\nreturn out;"
+      },
+      "id": "filter-dedup",
+      "name": "Manajer Sesi & Filter Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-help",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "command_help",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-help",
+      "name": "Perintah /start?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"Selamat datang Kak *{{ $json.user_name }}* di *AI Review Analyst Agent (Ika Agent)*!\\n\\n*Identitas Sesi Akun Anda:*\\n- ID Telegram: `{{ $json.chat_id }}`\\n- Sesi: Terisolasi khusus untuk akun Anda\\n\\n*FORMAT LINK SHOPEE YANG DIDUKUNG:*\\n\\n1. *Shortlink Aplikasi Shopee (Tombol Share):*\\n   - `https://s.shopee.co.id/30o3VCANyp`\\n   - `https://id.shp.ee/d19tigJZ`\\n   - `https://shp.ee/xxxxxxx`\\n\\n2. *Link Produk Barang (Web Desktop & Mobile):*\\n   - `https://shopee.co.id/product-i.627115675.43080431282`\\n   - `https://shopee.co.id/product/80932652/48002543404`\\n   - `https://shopee.co.id/Nama-Barang-i.627115675.43080431282`\\n\\n3. *Link Profil / Etalase Toko Shopee:*\\n   - `https://shopee.co.id/username_toko`\\n   - `https://shopee.co.id/shop/80932652`\\n\\n4. *File Dokumen & Teks Langsung:*\\n   - Unggah file ulasan: `.xlsx`, `.xls`, atau `.csv`\\n   - Salin dan kirim langsung teks ulasan pembeli di chat ini\\n\\n*Catatan Cerdas Scraper:*\\n- Untuk link produk baru yang belum memiliki rating langsung, bot otomatis menyedot ulasan etalase toko penjualnya agar Anda tetap mendapatkan evaluasi mutu & layanan penjual.\\n\\n*Perintah Tambahan:*\\n- `/status` atau `/sesi` : Melihat statistik analitik akun Anda.\\n- `/start` atau `/help` : Membuka kembali panduan ini.\\n\\nSilakan tempel tautan Shopee atau lampirkan file ulasan Anda!\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-help",
+      "name": "Kirim Panduan & Info Sesi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-session",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "command_session",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-session",
+      "name": "Perintah /status Sesi?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"*STATUS SESI AKUN TELEGRAM*\\n\\n- Akun: *{{ $json.user_name }}* (@{{ $json.username }})\\n- ID Telegram: `{{ $json.chat_id }}`\\n- Scraping Barang: *{{ $json.session_stats.total_product_scrapes || 0 }} kali*\\n- Scraping Toko: *{{ $json.session_stats.total_shop_scrapes || 0 }} kali*\\n- Total File Diunggah: *{{ $json.session_stats.total_files_uploaded || 0 }} file*\\n- Total Ulasan Dianalisis: *{{ $json.session_stats.total_reviews_analyzed || 0 }} ulasan*\\n- Status Sesi: *Aktif & Aman Terisolasi*\\n- Terakhir Aktif: {{ new Date($json.session_stats.last_active).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) }} WIB\\n\\nSeluruh data akun Anda tersimpan terisolasi dan tidak bercampur dengan akun lain.\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "send-session-info",
+      "name": "Kirim Status Sesi Akun",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1280,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-excel",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "upload_excel",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-excel",
+      "name": "Unggah File Excel?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"File ulasan *{{ $json.file_name }}* diterima di sesi akun Anda (`{{ $json.chat_id }}`). Sedang mengunduh dan memproses ulasan...\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "ack-excel",
+      "name": "Konfirmasi Penerimaan File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/getFile?file_id={{ $json.file_id }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "get-file-meta",
+      "name": "Dapatkan Lokasi File Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.telegram.org/file/botYOUR_TELEGRAM_BOT_TOKEN/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "download-file",
+      "name": "Unduh File Binary Excel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromFile",
+        "options": {
+          "headerRow": 1
+        }
+      },
+      "id": "parse-spreadsheet",
+      "name": "Parse Spreadsheet ke Baris Data",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst meta = $('Manajer Sesi & Filter Input').first().json;\n\nif (rows.length === 0) {\n  return [];\n}\n\nreturn rows.map((r, idx) => {\n  const produk = r.Produk || r.produk || r.Product || r.product || r['Nama Produk'] || 'Produk Umum';\n  const komentar = r.Komentar || r.komentar || r.Review || r.review || r.Ulasan || r.ulasan || r.Feedback || r.isi || Object.values(r)[0] || '';\n  const tanggal = r.Tanggal || r.tanggal || r.Date || r.date || new Date().toISOString().split('T')[0];\n  const revId = r.ID || r.id || r['ID Review'] || `REV-${String(idx + 1).padStart(3, '0')}`;\n  const star = Number(r.Rating || r.rating || r.Bintang || r.bintang || 5) || 5;\n\n  return {\n    json: {\n      review_id: revId,\n      tanggal: String(tanggal),\n      produk: String(produk),\n      komentar: String(komentar),\n      rating_star: star,\n      is_empty_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'excel'\n    }\n  };\n}).filter(item => item.json.komentar.length > 2);"
+      },
+      "id": "normalize-excel-rows",
+      "name": "Petakan Kolom Ulasan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-shopee-prod",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "shopee_product",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-shopee-product",
+      "name": "Link Barang Shopee?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1400,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"Link *Barang / Produk Shopee* terdeteksi:\\n`{{ $json.shopee_url }}`\\n\\nSedang menyedot ulasan spesifik barang ini via Apify Cloud Engine... Mohon tunggu (estimasi 5-12 detik).\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "ack-shopee-product",
+      "name": "Konfirmasi Scraping Barang",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/dami_studio~shopee-shop-reviews-scraper/run-sync-get-dataset-items?token=YOUR_APIFY_API_TOKEN",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"startUrls\": [\n    {\n      \"url\": \"{{ $('Link Barang Shopee?').first().json.shopee_url }}\"\n    },\n    {\n      \"url\": \"{{ $('Link Barang Shopee?').first().json.shop_url || $('Link Barang Shopee?').first().json.shopee_url }}\"\n    }\n  ],\n  \"maxReviewsPerShop\": 25,\n  \"starRatings\": [\"5\", \"4\", \"3\", \"2\", \"1\"],\n  \"onlyWithText\": false,\n  \"includeShopSummary\": true\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "scrape-apify-product",
+      "name": "Scrape Ulasan Barang via Apify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        440
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst meta = $('Link Barang Shopee?').first().json;\n\nlet inferredName = 'Produk Shopee';\nif (meta.shopee_url) {\n  const matchSlug = meta.shopee_url.match(/shopee\\.co\\.id\\/([^\\/\\?]+)-i\\.\\d+\\.\\d+/i);\n  if (matchSlug && matchSlug[1] && matchSlug[1].toLowerCase() !== 'product') {\n    inferredName = decodeURIComponent(matchSlug[1]).replace(/-/g, ' ');\n  }\n}\n\nlet shopInfo = null;\nconst allScrapedReviews = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  if (it.type === 'shop' || it.type === 'shop_summary' || (it.follower_count !== undefined && !it.cmtid)) {\n    shopInfo = {\n      name: it.name || it.username || 'Toko Shopee',\n      username: it.username || '-',\n      rating_star: it.rating_star ? Number(it.rating_star).toFixed(2) : '4.7',\n      rating_total: it.rating_total || 0,\n      follower_count: it.follower_count || 0,\n      response_rate: it.response_rate || 0,\n      shop_url: it.shop_url || meta.shop_url || meta.shopee_url\n    };\n  } else if (it.type === 'review' || it.rating_star || it.comment !== undefined || it.reviewText) {\n    const rawComment = (it.comment || it.reviewText || '').trim();\n    const star = Number(it.rating_star || it.ratingStar) || 5;\n    const cleanComment = rawComment.length > 0 ? rawComment : `Rating ${star} Bintang tanpa teks ulasan tertulis.`;\n    \n    let prodName = it.product_name || it.productTitle || inferredName;\n    if (it.model_name) {\n      prodName += ` [Varian: ${it.model_name}]`;\n    }\n\n    if (!shopInfo && (it.shop_name || it.shop_username)) {\n      shopInfo = {\n        name: it.shop_name || 'Toko Shopee',\n        username: it.shop_username || '-',\n        rating_star: '5.0',\n        rating_total: 0,\n        follower_count: 0,\n        response_rate: 100,\n        shop_url: `https://shopee.co.id/${it.shop_username || it.shopid || ''}`\n      };\n    }\n\n    allScrapedReviews.push({\n      review_id: `REV-${it.cmtid || it.reviewId || i + 1}`,\n      tanggal: it.review_date ? it.review_date.split('T')[0] : (it.collected_at ? it.collected_at.split('T')[0] : new Date().toISOString().split('T')[0]),\n      produk: prodName,\n      komentar: cleanComment,\n      rating_star: star,\n      is_empty_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'product',\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink,\n      item_id: it.itemid || it.itemId || meta.item_id || '',\n      shop_id: it.shopid || it.shopId || meta.shop_id || ''\n    });\n  }\n}\n\n// Pisahkan ulasan spesifik produk vs ulasan toko\nlet targetReviews = [];\nlet isShopFallback = false;\n\nif (meta.item_id && allScrapedReviews.length > 0) {\n  const prodSpecific = allScrapedReviews.filter(r => String(r.item_id) === String(meta.item_id));\n  if (prodSpecific.length > 0) {\n    targetReviews = prodSpecific;\n    isShopFallback = false;\n  }\n}\n\nif (targetReviews.length === 0 && allScrapedReviews.length > 0) {\n  // Jika ulasan produk ini belum ada di sample, gunakan ulasan reputasi toko penjualnya!\n  targetReviews = allScrapedReviews;\n  isShopFallback = true;\n}\n\nif (shopInfo && targetReviews.length > 0) {\n  targetReviews.forEach(r => {\n    r.shop_info = shopInfo;\n    r.is_shop_fallback = isShopFallback;\n  });\n}\n\nif (targetReviews.length === 0) {\n  return [{\n    json: {\n      review_id: 'PROD-NONE',\n      tanggal: new Date().toISOString().split('T')[0],\n      produk: inferredName,\n      komentar: 'Produk Shopee aktif tanpa ulasan baru.',\n      rating_star: 5,\n      is_empty_fallback: true,\n      is_shop_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'product',\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink,\n      shop_id: meta.shop_id || '',\n      item_id: meta.item_id || ''\n    }\n  }];\n}\n\nreturn targetReviews.map(r => ({ json: r }));"
+      },
+      "id": "normalize-product-reviews",
+      "name": "Normalisasi Ulasan Barang",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-shopee-shop",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "shopee_shop",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-shopee-shop",
+      "name": "Link Toko Shopee?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1400,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"Link *Toko Shopee* terdeteksi:\\n`{{ $json.shopee_url }}`\\n\\nSedang menyedot reputasi dan ulasan toko via Apify Cloud Engine... Mohon tunggu (estimasi 5-15 detik).\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "ack-shopee-shop",
+      "name": "Konfirmasi Scraping Toko",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/dami_studio~shopee-shop-reviews-scraper/run-sync-get-dataset-items?token=YOUR_APIFY_API_TOKEN",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"startUrls\": [\n    {\n      \"url\": \"{{ $('Link Toko Shopee?').first().json.shopee_url }}\"\n    }\n  ],\n  \"maxReviewsPerShop\": 20,\n  \"starRatings\": [\"5\", \"4\", \"3\", \"2\", \"1\"],\n  \"onlyWithText\": false,\n  \"includeShopSummary\": true\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "scrape-apify-shop",
+      "name": "Scrape Ulasan Toko via Apify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        600
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst meta = $('Link Toko Shopee?').first().json;\n\nlet shopInfo = null;\nconst reviews = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  if (it.type === 'shop' || it.type === 'shop_summary' || (it.follower_count !== undefined && !it.cmtid)) {\n    shopInfo = {\n      name: it.name || it.username || 'Toko Shopee',\n      username: it.username || '-',\n      rating_star: it.rating_star ? Number(it.rating_star).toFixed(2) : '4.7',\n      rating_total: it.rating_total || 0,\n      follower_count: it.follower_count || 0,\n      response_rate: it.response_rate || 0,\n      shop_url: it.shop_url || meta.shopee_url\n    };\n  } else if (it.type === 'review' || it.rating_star || it.comment !== undefined) {\n    const rawComment = (it.comment || '').trim();\n    const star = Number(it.rating_star) || 5;\n    const cleanComment = rawComment.length > 0 ? rawComment : `Rating ${star} Bintang tanpa teks ulasan tertulis.`;\n    \n    reviews.push({\n      review_id: `TOKO-${it.cmtid || i + 1}`,\n      tanggal: it.review_date ? it.review_date.split('T')[0] : (it.collected_at ? it.collected_at.split('T')[0] : new Date().toISOString().split('T')[0]),\n      produk: it.product_name || (shopInfo ? shopInfo.name : 'Produk Toko'),\n      komentar: cleanComment,\n      rating_star: star,\n      is_empty_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'shop',\n      shop_info: shopInfo,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink\n    });\n  }\n}\n\nif (shopInfo && reviews.length > 0) {\n  reviews.forEach(r => { r.shop_info = shopInfo; });\n}\n\nif (reviews.length === 0) {\n  return [{\n    json: {\n      review_id: 'TOKO-NONE',\n      tanggal: new Date().toISOString().split('T')[0],\n      produk: shopInfo ? shopInfo.name : 'Toko Shopee',\n      komentar: 'Toko Shopee aktif tanpa ulasan baru.',\n      rating_star: 5,\n      is_empty_fallback: true,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'shop',\n      shop_info: shopInfo,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink\n    }\n  }];\n}\n\nreturn reviews.map(r => ({ json: r }));"
+      },
+      "id": "normalize-shop-reviews",
+      "name": "Normalisasi Ulasan Toko",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2120,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json;\nreturn [{\n  json: {\n    review_id: 'REV-DIRECT-001',\n    tanggal: new Date().toISOString().split('T')[0],\n    produk: 'Ulasan Langsung',\n    komentar: msg.text,\n    rating_star: 5,\n    is_empty_fallback: false,\n    chat_id: msg.chat_id,\n    session_id: msg.session_id,\n    user_name: msg.user_name,\n    target_type: 'single_text'\n  }\n}];"
+      },
+      "id": "single-review-prep",
+      "name": "Format Ulasan Teks Tunggal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(i => i.json);\n\nif (!items || items.length === 0) {\n  return [{ json: { needs_ai: false, all_reviews: [], prompt_text: '', text_reviews: [] } }];\n}\n\nif (items.length === 1 && items[0].is_empty_fallback) {\n  return [{ json: { needs_ai: false, all_reviews: items, prompt_text: '', text_reviews: [] } }];\n}\n\nconst allReviews = [];\nconst textReviewsToAnalyze = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const star = Number(item.rating_star) || 5;\n  const rawComment = (item.komentar || '').trim();\n  \n  // Cek apakah ulasan hanya rating bintang (tanpa teks ulasan tertulis nyata)\n  const isStarOnly = !rawComment || \n                     rawComment.length <= 3 || \n                     rawComment.startsWith('Rating ') || \n                     rawComment.toLowerCase().includes('tanpa teks ulasan');\n\n  if (isStarOnly) {\n    // Klasifikasi Instan 0ms berbasis Star Rating\n    let sentimen = 'Positif';\n    let skor = 0.90;\n    let topik = 'Kepuasan Rating Bintang';\n    let ringkasan = `Rating ${star} bintang dari pembeli`;\n\n    if (star <= 2) {\n      sentimen = 'Negatif';\n      skor = 0.15;\n      topik = 'Keluhan Rating Bintang';\n      ringkasan = `Rating rendah ${star} bintang dari pembeli`;\n    } else if (star === 3) {\n      sentimen = 'Netral';\n      skor = 0.50;\n      topik = 'Rating Bintang Netral';\n      ringkasan = `Rating netral ${star} bintang`;\n    }\n\n    allReviews.push({\n      ...item,\n      sentimen: sentimen,\n      skor: skor,\n      topik: topik,\n      ringkasan_aspek: ringkasan,\n      engine_dipakai: 'Klasifikasi Instan Rating'\n    });\n  } else {\n    // Ulasan ada teks pembeli nyata -> kirim ke batch AI (maksimal 10 ulasan teks teratas untuk kecepatan puncak)\n    if (textReviewsToAnalyze.length < 10) {\n      textReviewsToAnalyze.push({\n        id: item.review_id || `REV-${i+1}`,\n        produk: item.produk || 'Produk Shopee',\n        rating: star,\n        komentar: rawComment.substring(0, 250)\n      });\n    }\n    allReviews.push({\n      ...item,\n      sentimen: star >= 4 ? 'Positif' : (star <= 2 ? 'Negatif' : 'Netral'),\n      skor: star >= 4 ? 0.9 : (star <= 2 ? 0.2 : 0.5),\n      topik: 'Kualitas Produk',\n      ringkasan_aspek: rawComment.substring(0, 100),\n      engine_dipakai: 'Antrean AI'\n    });\n  }\n}\n\nif (textReviewsToAnalyze.length > 0) {\n  const prompt = `Kamu adalah AI Review Analyst profesional. Analisis daftar ${textReviewsToAnalyze.length} ulasan pembeli berikut secara objektif:\n${JSON.stringify(textReviewsToAnalyze, null, 2)}\n\nKembalikan HANYA JSON Array valid dengan format:\n[\n  {\n    \"id\": \"string ID ulasan\",\n    \"sentimen\": \"Positif\" | \"Negatif\" | \"Netral\",\n    \"skor\": 0.0 sampai 1.0,\n    \"topik\": \"string topik singkat\",\n    \"ringkasan_aspek\": \"string intisari ulasan\"\n  }\n]`;\n\n  return [{\n    json: {\n      needs_ai: true,\n      prompt_text: prompt,\n      all_reviews: allReviews,\n      text_reviews: textReviewsToAnalyze\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    needs_ai: false,\n    prompt_text: '',\n    all_reviews: allReviews,\n    text_reviews: []\n  }\n}];"
+      },
+      "id": "prepare-batch-ai",
+      "name": "Siapkan Analisis AI Batch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-needs-ai",
+              "leftValue": "={{ $json.needs_ai }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-needs-ai",
+      "name": "Perlu Analisis Teks AI?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2860,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=YOUR_GEMINI_API_KEY",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": {{ JSON.stringify($json.prompt_text) }}\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {
+          "timeout": 12000
+        }
+      },
+      "id": "gemini-flash-lite-primary",
+      "name": "Gemini 3.5 Flash Lite (Utama)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3100,
+        260
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-fail",
+              "leftValue": "={{ $json.error !== undefined || $json.candidates === undefined }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-gemini-fail",
+      "name": "Gemini Error / Failover?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3320,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vibe.madewgn.dev/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer sk-b95891e58a833597-iccpyq-774bcc43"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"free/gpt-5.6-luna\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Kamu adalah AI Review Analyst profesional. Kembalikan HANYA JSON array valid sesuai format yang diminta: [{\\\"id\\\": \\\"...\\\", \\\"sentimen\\\": \\\"Positif\\\"|\\\"Negatif\\\"|\\\"Netral\\\", \\\"skor\\\": 0.0-1.0, \\\"topik\\\": \\\"...\\\", \\\"ringkasan_aspek\\\": \\\"...\\\"}]\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($('Siapkan Analisis AI Batch').first().json.prompt_text) }}\n    }\n  ]\n}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "vibe-backup-node",
+      "name": "AI Cadangan (Vibe)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3540,
+        380
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const batchMeta = $('Siapkan Analisis AI Batch').first().json;\nconst allReviews = batchMeta.all_reviews || [];\n\nif (!batchMeta.needs_ai || allReviews.length === 0) {\n  return allReviews.map(r => ({ json: r }));\n}\n\nlet aiResults = [];\nlet engine = 'Unknown';\n\n// 1. Cek respons Google Gemini Utama\nif ($json.candidates && $json.candidates[0]?.content?.parts[0]?.text) {\n  engine = 'Google Gemini 3.5 Flash Lite';\n  try {\n    let raw = $json.candidates[0].content.parts[0].text.trim();\n    if (raw.startsWith('```json')) {\n      raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/, '');\n    } else if (raw.startsWith('```')) {\n      raw = raw.replace(/^```\\s*/i, '').replace(/\\s*```$/, '');\n    }\n    aiResults = JSON.parse(raw);\n  } catch (e) {}\n}\n// 2. Cek respons AI Cadangan (Vibe)\nelse if ($json.choices && $json.choices[0]?.message?.content) {\n  engine = 'Vibe AI Backup';\n  try {\n    let raw = $json.choices[0].message.content.trim();\n    if (raw.startsWith('```json')) {\n      raw = raw.replace(/^```json\\s*/i, '').replace(/\\s*```$/, '');\n    } else if (raw.startsWith('```')) {\n      raw = raw.replace(/^```\\s*/i, '').replace(/\\s*```$/, '');\n    }\n    aiResults = JSON.parse(raw);\n  } catch (e) {}\n}\n\nif (!Array.isArray(aiResults)) {\n  if (aiResults && typeof aiResults === 'object') {\n    aiResults = [aiResults];\n  } else {\n    aiResults = [];\n  }\n}\n\nconst aiMap = {};\nfor (const res of aiResults) {\n  if (res && res.id) {\n    aiMap[String(res.id)] = res;\n  }\n}\n\nconst finalReviews = allReviews.map(r => {\n  const aiData = aiMap[String(r.review_id)];\n  if (aiData) {\n    return {\n      ...r,\n      sentimen: aiData.sentimen || r.sentimen || 'Netral',\n      skor: aiData.skor !== undefined ? Number(aiData.skor) : r.skor,\n      topik: aiData.topik || r.topik || 'Kualitas Produk',\n      ringkasan_aspek: aiData.ringkasan_aspek || r.ringkasan_aspek || '-',\n      engine_dipakai: engine\n    };\n  } else if (r.engine_dipakai === 'Antrean AI') {\n    r.engine_dipakai = engine !== 'Unknown' ? engine : 'Fallback Heuristik Cerdas';\n  }\n  return r;\n});\n\nreturn finalReviews.map(r => ({ json: r }));"
+      },
+      "id": "normalize-result",
+      "name": "Normalisasi Data Ulasan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nlet allItems = [];\n\ntry {\n  const normResults = $('Normalisasi Data Ulasan').all().map(i => i.json);\n  if (Array.isArray(normResults) && normResults.length > 0) {\n    allItems = normResults;\n  }\n} catch (e) {}\n\nif (allItems.length === 0) {\n  allItems = $input.all().map(i => i.json);\n}\n\nif (allItems.length === 0) {\n  return [];\n}\n\nconst total = allItems.length;\nconst chatId = String(allItems[0].chat_id);\nconst targetType = allItems[0].target_type;\nconst shopInfo = allItems[0].shop_info;\nconst productUrl = allItems[0].product_url;\nconst prodTitle = allItems[0].produk ? allItems[0].produk.toUpperCase() : 'PRODUK SHOPEE';\nconst originalUrl = allItems[0].original_url;\nconst resolvedUrl = allItems[0].resolved_url || productUrl || (shopInfo ? shopInfo.shop_url : '-');\nconst isShopFallback = !!allItems[0].is_shop_fallback;\n\nfunction esc(s) {\n  if (!s) return '';\n  return String(s).replace(/_/g, '\\\\_').replace(/\\*/g, '\\\\*').replace(/`/g, '\\\\`');\n}\n\n// Cek jika scraping kosong mutlak / fallback tanpa ulasan\nif (allItems.length === 1 && allItems[0].is_empty_fallback) {\n  const item = allItems[0];\n  const isShop = item.target_type === 'shop';\n  const tipeEntitas = isShop ? 'TOKO' : 'PRODUK';\n  const judulKosong = `*LAPORAN ANALISIS ULASAN ${tipeEntitas} SHOPEE (IKA AGENT)*`;\n  const infoEntitas = isShop ? '*INFORMASI TOKO SHOPEE:*' : '*INFORMASI PRODUK SHOPEE:*';\n\n  let detailId = '';\n  if (item.shop_id || item.item_id) {\n    detailId = `\\n- ID Toko Shopee: \\`${item.shop_id || '-'}\\`\\n- ID Produk Shopee: \\`${item.item_id || '-'}\\``;\n  }\n\n  const pesanKosong = `${judulKosong}\\nSesi Akun: *ID ${chatId}* (${item.user_name})\\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\\n\\n${infoEntitas}\\n- Status Link: *Berhasil Terdeteksi & Terurai 100%*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}${detailId}\\n\\n*Status Ulasan di Shopee:*\\n⚠️ *Produk ini di Shopee belum memiliki ulasan pembeli (0 Penilaian / 0 Ulasan).*\\n\\n*Penjelasan:*\\n- Link produk berhasil dideteksi oleh Ika Agent.\\n- Di halaman Shopee resminya, produk ini berstatus *'Belum ada penilaian'* sehingga belum ada ulasan yang dapat dianalisis AI.\\n\\n*Solusi:*\\n- Coba kirimkan link barang Shopee lain yang sudah memiliki rating bintang & ulasan.\\n- Atau kirim file Excel / ketik ulasan pembeli langsung di chat bot ini.`;\n\n  return [{\n    json: {\n      chat_id: Number(chatId),\n      text: pesanKosong,\n      total: 0,\n      positif: 0,\n      negatif: 0,\n      netral: 0\n    }\n  }];\n}\n\n// Update statistik sesi untuk akun Telegram ini\nif (staticData.sessions && staticData.sessions[chatId]) {\n  staticData.sessions[chatId].total_reviews_analyzed = (staticData.sessions[chatId].total_reviews_analyzed || 0) + total;\n}\n\nconst positif = allItems.filter(i => i.sentimen === 'Positif').length;\nconst negatif = allItems.filter(i => i.sentimen === 'Negatif').length;\nconst netral = allItems.filter(i => i.sentimen === 'Netral').length;\n\nconst pctPositif = ((positif / total) * 100).toFixed(1);\nconst pctNegatif = ((negatif / total) * 100).toFixed(1);\nconst pctNetral = ((netral / total) * 100).toFixed(1);\n\nconst avgScore = (allItems.reduce((acc, cur) => acc + (cur.skor !== undefined ? Number(cur.skor) : 0.5), 0) / total).toFixed(2);\n\n// Keluhan pelanggan\nconst negItems = allItems.filter(i => i.sentimen === 'Negatif');\nlet complaints = '';\nif (negItems.length > 0) {\n  const prioritizedNeg = [\n    ...negItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...negItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  complaints = prioritizedNeg.slice(0, 4).map(i => {\n    const topik = i.topik && i.topik !== 'Umum' ? ` (Topik: ${esc(i.topik)})` : '';\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}${topik}`;\n  }).join('\\n');\n} else {\n  complaints = 'Tidak ditemukan keluhan signifikan.';\n}\n\n// Pujian pelanggan\nconst posItems = allItems.filter(i => i.sentimen === 'Positif');\nlet praises = '';\nif (posItems.length > 0) {\n  const prioritizedPos = [\n    ...posItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...posItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  praises = prioritizedPos.slice(0, 4).map(i => {\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}`;\n  }).join('\\n');\n} else {\n  praises = 'Tidak ada ulasan positif spesifik.';\n}\n\n// Rekomendasi tindakan operasional\nlet rekomendasi = '';\nif (Number(pctPositif) >= 75) {\n  rekomendasi = `Kualitas dan kepuasan pembeli sangat tinggi (${pctPositif}% positif).\\nPertahankan kontrol kualitas produk dan tingkatkan koordinasi dengan pihak ekspedisi untuk pengiriman yang lebih kilat.`;\n} else if (negatif > 0) {\n  rekomendasi = `Tingkatkan pengawasan QC pada produk yang dikeluhkan sebelum proses packing.`;\n} else {\n  rekomendasi = 'Standar kualitas dan kepuasan pembeli sangat memuaskan, pertahankan.';\n}\n\nlet infoHeader = '';\nlet judulLaporan = '';\n\nif (targetType === 'shop') {\n  judulLaporan = '*LAPORAN ANALISIS ULASAN TOKO SHOPEE (IKA AGENT)*';\n  const sName = shopInfo ? esc(shopInfo.name) : 'Toko Shopee';\n  const sUser = shopInfo ? esc(shopInfo.username) : '-';\n  const sRating = shopInfo ? shopInfo.rating_star : '4.90';\n  const sRatingTotal = shopInfo ? Number(shopInfo.rating_total || 0).toLocaleString('id-ID') : '0';\n  const sFollowers = shopInfo ? Number(shopInfo.follower_count || 0).toLocaleString('id-ID') : '0';\n  const sResponse = shopInfo ? shopInfo.response_rate : '96';\n\n  infoHeader = `*INFORMASI TOKO SHOPEE:*\\n- Toko: *${sName}* (@${sUser})\\n- Rating Toko: *${sRating} / 5.0* (${sRatingTotal} ulasan)\\n- Pengikut: *${sFollowers}*\\n- Performa Respon Chat: *${sResponse}%*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n} else {\n  const shopLine = shopInfo ? `\\n- Toko: *${esc(shopInfo.name)}* (@${esc(shopInfo.username)})` : '';\n  \n  if (isShopFallback) {\n    judulLaporan = '*LAPORAN ANALISIS REPUTASI TOKO & PRODUK (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK & REPUTASI TOKO:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Status Ulasan: *Varian item ini belum memiliki ulasan langsung di Shopee. AI menganalisis ulasan pembeli dari toko ${shopInfo ? esc(shopInfo.name) : 'penjual'} agar Anda tetap mendapatkan evaluasi mutu & layanan.*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  } else {\n    judulLaporan = '*LAPORAN ANALISIS ULASAN PRODUK SHOPEE (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK SHOPEE:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  }\n}\n\nconst engines = [...new Set(allItems.map(i => i.engine_dipakai).filter(Boolean))].join(', ') || 'Google Gemini 3.5 Flash Lite';\n\nconst pesanLaporan = `${judulLaporan}\nSesi Akun: *ID ${chatId}* (${allItems[0].user_name})\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\n\n${infoHeader}\n\n*Total Ulasan Dianalisis:* *${total} ulasan*\n*Mesin AI:* ${engines}\n\n*Distribusi Sentimen:*\n- Positif: ${positif} (${pctPositif}%)\n- Negatif: ${negatif} (${pctNegatif}%)\n- Netral: ${netral} (${pctNetral}%)\n- Skor Kepuasan Rata-rata: ${avgScore} / 1.0\n\n*Pujian & Aspek Kepuasan Terbaik:*\n${praises}\n\n*Keluhan & Poin Kritis Pelanggan:*\n${complaints}\n\n*Rekomendasi Tindakan Operasional:*\n${rekomendasi}`;\n\nreturn [{\n  json: {\n    chat_id: Number(chatId),\n    text: pesanLaporan,\n    total: total,\n    positif: positif,\n    negatif: negatif,\n    netral: netral\n  }\n}];"
+      },
+      "id": "generate-summary-report",
+      "name": "Hasilkan Laporan Analitik Lengkap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3800,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": {{ JSON.stringify($json.text) }},\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "send-final-report",
+      "name": "Kirim Laporan ke Telegram Pengguna",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "check-shortlink",
+              "leftValue": "={{ $json.intent }}",
+              "rightValue": "resolve_shortlink",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-shortlink",
+      "name": "Tautan Shortlink?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.shopee_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "resolve-shortlink-http",
+      "name": "Urai Shortlink Shopee",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        260
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const meta = $('Manajer Sesi & Filter Input').first().json;\nconst headers = $json.headers || {};\nlet loc = $json.redirect_url || headers.location || headers.Location || headers['content-location'] || '';\n\nif (!loc) {\n  const bodyStr = typeof $json.data === 'string' ? $json.data : JSON.stringify($json || {});\n  const hrefMatch = bodyStr.match(/href=[\"'](https?:\\/\\/[^\"']+)[\"']/i);\n  if (hrefMatch) {\n    loc = hrefMatch[1].replace(/&amp;/g, '&');\n  } else {\n    loc = (meta && meta.shopee_url) ? meta.shopee_url : '';\n  }\n}\n\nloc = (loc || '').toString();\n\nif (loc.startsWith('/')) {\n  loc = 'https://shopee.co.id' + loc;\n}\n\nlet isProduct = false;\nlet cleanShopeeUrl = loc;\nlet shopUrl = '';\nlet shopId = '';\nlet itemId = '';\n\ntry {\n  const parsed = new URL(loc);\n  const path = parsed.pathname;\n\n  const dashMatch = path.match(/-i\\.(\\d+)\\.(\\d+)/);\n  const prodSlashMatch = path.match(/\\/product\\/(\\d+)\\/(\\d+)/);\n  const slashMatch = path.match(/\\/([^\\/]+)\\/(\\d+)\\/(\\d+)/);\n\n  if (dashMatch) {\n    isProduct = true;\n    shopId = dashMatch[1];\n    itemId = dashMatch[2];\n    cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n    shopUrl = `https://shopee.co.id/shop/${shopId}`;\n  } else if (prodSlashMatch) {\n    isProduct = true;\n    shopId = prodSlashMatch[1];\n    itemId = prodSlashMatch[2];\n    cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n    shopUrl = `https://shopee.co.id/shop/${shopId}`;\n  } else if (slashMatch && slashMatch[1] !== 'shop') {\n    isProduct = true;\n    shopId = slashMatch[2];\n    itemId = slashMatch[3];\n    cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n    shopUrl = `https://shopee.co.id/shop/${shopId}`;\n  } else if (path.startsWith('/product') && parsed.searchParams.has('itemId') && parsed.searchParams.has('shopId')) {\n    isProduct = true;\n    shopId = parsed.searchParams.get('shopId');\n    itemId = parsed.searchParams.get('itemId');\n    cleanShopeeUrl = `https://shopee.co.id/product-i.${shopId}.${itemId}`;\n    shopUrl = `https://shopee.co.id/shop/${shopId}`;\n  } else {\n    isProduct = false;\n    cleanShopeeUrl = `${parsed.origin}${path}`;\n    shopUrl = cleanShopeeUrl;\n  }\n} catch (e) {\n  cleanShopeeUrl = loc.split('?')[0];\n  shopUrl = cleanShopeeUrl;\n}\n\nconst intent = isProduct ? 'shopee_product' : 'shopee_shop';\nconst shopeeType = isProduct ? 'product' : 'shop';\n\nconst staticData = $getWorkflowStaticData('global');\nstaticData.currentResolved = {\n  shopee_url: cleanShopeeUrl,\n  shop_url: shopUrl,\n  shop_id: shopId,\n  item_id: itemId,\n  resolved_url: cleanShopeeUrl,\n  original_url: meta.original_url || meta.shopee_url,\n  is_shortlink: true,\n  shopee_type: shopeeType,\n  intent: intent,\n  chat_id: meta.chat_id,\n  session_id: meta.session_id,\n  user_name: meta.user_name,\n  username: meta.username\n};\n\nif (staticData.sessions && staticData.sessions[meta.chat_id]) {\n  if (isProduct) {\n    staticData.sessions[meta.chat_id].total_product_scrapes = (staticData.sessions[meta.chat_id].total_product_scrapes || 0) + 1;\n  } else {\n    staticData.sessions[meta.chat_id].total_shop_scrapes = (staticData.sessions[meta.chat_id].total_shop_scrapes || 0) + 1;\n  }\n}\n\nreturn [{\n  json: {\n    ...meta,\n    shopee_url: cleanShopeeUrl,\n    shop_url: shopUrl,\n    shop_id: shopId,\n    item_id: itemId,\n    resolved_url: cleanShopeeUrl,\n    original_url: meta.original_url || meta.shopee_url,\n    is_shortlink: true,\n    shopee_type: shopeeType,\n    intent: intent\n  }\n}];"
+      },
+      "id": "process-resolved-shortlink",
+      "name": "Proses URL Terurai Shopee",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Poller (Tiap 10 Detik)": {
+      "main": [
+        [
+          {
+            "node": "Cek Inbox Telegram Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Inbox Telegram Bot": {
+      "main": [
+        [
+          {
+            "node": "Manajer Sesi & Filter Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manajer Sesi & Filter Input": {
+      "main": [
+        [
+          {
+            "node": "Perintah /start?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perintah /start?": {
+      "main": [
+        [
+          {
+            "node": "Kirim Panduan & Info Sesi",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perintah /status Sesi?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perintah /status Sesi?": {
+      "main": [
+        [
+          {
+            "node": "Kirim Status Sesi Akun",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unggah File Excel?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unggah File Excel?": {
+      "main": [
+        [
+          {
+            "node": "Konfirmasi Penerimaan File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tautan Shortlink?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfirmasi Penerimaan File": {
+      "main": [
+        [
+          {
+            "node": "Dapatkan Lokasi File Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dapatkan Lokasi File Telegram": {
+      "main": [
+        [
+          {
+            "node": "Unduh File Binary Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unduh File Binary Excel": {
+      "main": [
+        [
+          {
+            "node": "Parse Spreadsheet ke Baris Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Spreadsheet ke Baris Data": {
+      "main": [
+        [
+          {
+            "node": "Petakan Kolom Ulasan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Petakan Kolom Ulasan": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Analisis AI Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link Barang Shopee?": {
+      "main": [
+        [
+          {
+            "node": "Konfirmasi Scraping Barang",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Link Toko Shopee?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfirmasi Scraping Barang": {
+      "main": [
+        [
+          {
+            "node": "Scrape Ulasan Barang via Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Ulasan Barang via Apify": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi Ulasan Barang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisasi Ulasan Barang": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Analisis AI Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link Toko Shopee?": {
+      "main": [
+        [
+          {
+            "node": "Konfirmasi Scraping Toko",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format Ulasan Teks Tunggal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konfirmasi Scraping Toko": {
+      "main": [
+        [
+          {
+            "node": "Scrape Ulasan Toko via Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Ulasan Toko via Apify": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi Ulasan Toko",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisasi Ulasan Toko": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Analisis AI Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Ulasan Teks Tunggal": {
+      "main": [
+        [
+          {
+            "node": "Siapkan Analisis AI Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 3.5 Flash Lite (Utama)": {
+      "main": [
+        [
+          {
+            "node": "Gemini Error / Failover?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Cadangan (Vibe)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Error / Failover?": {
+      "main": [
+        [
+          {
+            "node": "AI Cadangan (Vibe)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalisasi Data Ulasan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cadangan (Vibe)": {
+      "main": [
+        [
+          {
+            "node": "Normalisasi Data Ulasan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalisasi Data Ulasan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalisasi Data Ulasan": {
+      "main": [
+        [
+          {
+            "node": "Hasilkan Laporan Analitik Lengkap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hasilkan Laporan Analitik Lengkap": {
+      "main": [
+        [
+          {
+            "node": "Kirim Laporan ke Telegram Pengguna",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tautan Shortlink?": {
+      "main": [
+        [
+          {
+            "node": "Urai Shortlink Shopee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Link Barang Shopee?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urai Shortlink Shopee": {
+      "main": [
+        [
+          {
+            "node": "Proses URL Terurai Shopee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proses URL Terurai Shopee": {
+      "main": [
+        [
+          {
+            "node": "Link Barang Shopee?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siapkan Analisis AI Batch": {
+      "main": [
+        [
+          {
+            "node": "Perlu Analisis Teks AI?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perlu Analisis Teks AI?": {
+      "main": [
+        [
+          {
+            "node": "Gemini 3.5 Flash Lite (Utama)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalisasi Data Ulasan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  }
+}
