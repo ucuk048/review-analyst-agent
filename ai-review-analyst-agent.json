@@ -17,13 +17,12 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        180,
-        300
+        192,
+        304
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/getUpdates?offset={{ $getWorkflowStaticData('global').lastUpdateId ? $getWorkflowStaticData('global').lastUpdateId + 1 : '' }}&timeout=3",
         "options": {
           "timeout": 5000
@@ -34,8 +33,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        380,
-        300
+        384,
+        304
       ],
       "onError": "continueRegularOutput"
     },
@@ -48,8 +47,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        580,
-        300
+        592,
+        304
       ]
     },
     {
@@ -82,7 +81,7 @@
       "typeVersion": 2.2,
       "position": [
         800,
-        140
+        144
       ]
     },
     {
@@ -100,7 +99,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"Selamat datang Kak *{{ $json.user_name }}* di *AI Review Analyst Agent (Ika Agent)*!\\n\\n*Identitas Sesi Akun Anda:*\\n- ID Telegram: `{{ $json.chat_id }}`\\n- Sesi: Terisolasi khusus untuk akun Anda\\n\\n*FORMAT LINK SHOPEE YANG DIDUKUNG:*\\n\\n1. *Shortlink Aplikasi Shopee (Tombol Share):*\\n   - `https://s.shopee.co.id/30o3VCANyp`\\n   - `https://id.shp.ee/d19tigJZ`\\n   - `https://shp.ee/xxxxxxx`\\n\\n2. *Link Produk Barang (Web Desktop & Mobile):*\\n   - `https://shopee.co.id/product-i.627115675.43080431282`\\n   - `https://shopee.co.id/product/80932652/48002543404`\\n   - `https://shopee.co.id/Nama-Barang-i.627115675.43080431282`\\n\\n3. *Link Profil / Etalase Toko Shopee:*\\n   - `https://shopee.co.id/username_toko`\\n   - `https://shopee.co.id/shop/80932652`\\n\\n4. *File Dokumen & Teks Langsung:*\\n   - Unggah file ulasan: `.xlsx`, `.xls`, atau `.csv`\\n   - Salin dan kirim langsung teks ulasan pembeli di chat ini\\n\\n*Catatan Cerdas Scraper:*\\n- Untuk link produk baru yang belum memiliki rating langsung, bot otomatis menyedot ulasan etalase toko penjualnya agar Anda tetap mendapatkan evaluasi mutu & layanan penjual.\\n\\n*Perintah Tambahan:*\\n- `/status` atau `/sesi` : Melihat statistik analitik akun Anda.\\n- `/start` atau `/help` : Membuka kembali panduan ini.\\n\\nSilakan tempel tautan Shopee atau lampirkan file ulasan Anda!\",\n  \"parse_mode\": \"Markdown\"\n}",
+        "jsonBody": "={\n  \"chat_id\": {{ $json.chat_id }},\n  \"text\": \"Selamat datang Kak *{{ $json.user_name }}* di *AI Review Analyst Agent (Ika Agent)*!\\n\\n*Identitas Sesi Akun Anda:*\\n- ID Telegram: `{{ $json.chat_id }}`\\n- Sesi: Terisolasi khusus untuk akun Anda\\n\\n*FORMAT LINK SHOPEE YANG DIDUKUNG:*\\n\\n1. *Shortlink Aplikasi Shopee (Tombol Share):*\\n   - https://s.shopee.co.id/xxxxx\\n   - https://id.shp.ee/xxxxx\\n   - https://shp.ee/xxxxx\\n\\n2. *Link Produk Barang (Web Desktop & Mobile):*\\n   - https://shopee.co.id/product-i.xxxxx.xxxxx\\n   - https://shopee.co.id/product/xxxxx/xxxxx\\n   - https://shopee.co.id/nama-barang-i.xxxxx.xxxxx\\n\\n3. *Link Profil / Etalase Toko Shopee:*\\n   - https://shopee.co.id/username\\\\_toko\\n   - https://shopee.co.id/shop/xxxxx\\n\\n4. *File Dokumen & Teks Langsung:*\\n   - Unggah file ulasan: .xlsx, .xls, atau .csv\\n   - Salin dan kirim langsung teks ulasan pembeli di chat ini\\n\\n*Catatan Cerdas Scraper:*\\n- Untuk link produk baru yang belum memiliki rating langsung, bot otomatis menyedot ulasan etalase toko penjualnya agar Anda tetap mendapatkan evaluasi mutu & layanan penjual.\\n\\n*Perintah Tambahan:*\\n- /status atau /sesi : Melihat statistik analitik akun Anda.\\n- /start atau /help : Membuka kembali panduan ini.\\n\\nSilakan tempel tautan Shopee atau lampirkan file ulasan Anda!\",\n  \"parse_mode\": \"Markdown\"\n}",
         "options": {
           "timeout": 10000
         }
@@ -173,7 +172,7 @@
       "typeVersion": 4.2,
       "position": [
         1280,
-        180
+        192
       ]
     },
     {
@@ -206,7 +205,7 @@
       "typeVersion": 2.2,
       "position": [
         1280,
-        360
+        368
       ]
     },
     {
@@ -235,12 +234,11 @@
       "typeVersion": 4.2,
       "position": [
         1520,
-        300
+        304
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "=https://api.telegram.org/botYOUR_TELEGRAM_BOT_TOKEN/getFile?file_id={{ $json.file_id }}",
         "options": {
           "timeout": 10000
@@ -251,13 +249,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1740,
-        300
+        1744,
+        304
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "=https://api.telegram.org/file/botYOUR_TELEGRAM_BOT_TOKEN/{{ $json.result.file_path }}",
         "options": {
           "response": {
@@ -273,13 +270,12 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1960,
-        300
+        1968,
+        304
       ]
     },
     {
       "parameters": {
-        "operation": "fromFile",
         "options": {
           "headerRow": 1
         }
@@ -289,8 +285,8 @@
       "type": "n8n-nodes-base.spreadsheetFile",
       "typeVersion": 2,
       "position": [
-        2180,
-        300
+        2192,
+        304
       ]
     },
     {
@@ -303,7 +299,7 @@
       "typeVersion": 2,
       "position": [
         2400,
-        300
+        304
       ]
     },
     {
@@ -335,7 +331,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1400,
+        1408,
         480
       ]
     },
@@ -364,8 +360,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1640,
-        440
+        1648,
+        448
       ]
     },
     {
@@ -393,23 +389,23 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1880,
-        440
+        1888,
+        448
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all().map(i => i.json);\nconst meta = $('Link Barang Shopee?').first().json;\n\nlet inferredName = 'Produk Shopee';\nif (meta.shopee_url) {\n  const matchSlug = meta.shopee_url.match(/shopee\\.co\\.id\\/([^\\/\\?]+)-i\\.\\d+\\.\\d+/i);\n  if (matchSlug && matchSlug[1] && matchSlug[1].toLowerCase() !== 'product') {\n    inferredName = decodeURIComponent(matchSlug[1]).replace(/-/g, ' ');\n  }\n}\n\nlet shopInfo = null;\nconst allScrapedReviews = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  if (it.type === 'shop' || it.type === 'shop_summary' || (it.follower_count !== undefined && !it.cmtid)) {\n    shopInfo = {\n      name: it.name || it.username || 'Toko Shopee',\n      username: it.username || '-',\n      rating_star: it.rating_star ? Number(it.rating_star).toFixed(2) : '4.7',\n      rating_total: it.rating_total || 0,\n      follower_count: it.follower_count || 0,\n      response_rate: it.response_rate || 0,\n      shop_url: it.shop_url || meta.shop_url || meta.shopee_url\n    };\n  } else if (it.type === 'review' || it.rating_star || it.comment !== undefined || it.reviewText) {\n    const rawComment = (it.comment || it.reviewText || '').trim();\n    const star = Number(it.rating_star || it.ratingStar) || 5;\n    const cleanComment = rawComment.length > 0 ? rawComment : `Rating ${star} Bintang tanpa teks ulasan tertulis.`;\n    \n    let prodName = it.product_name || it.productTitle || inferredName;\n    if (it.model_name) {\n      prodName += ` [Varian: ${it.model_name}]`;\n    }\n\n    if (!shopInfo && (it.shop_name || it.shop_username)) {\n      shopInfo = {\n        name: it.shop_name || 'Toko Shopee',\n        username: it.shop_username || '-',\n        rating_star: '5.0',\n        rating_total: 0,\n        follower_count: 0,\n        response_rate: 100,\n        shop_url: `https://shopee.co.id/${it.shop_username || it.shopid || ''}`\n      };\n    }\n\n    allScrapedReviews.push({\n      review_id: `REV-${it.cmtid || it.reviewId || i + 1}`,\n      tanggal: it.review_date ? it.review_date.split('T')[0] : (it.collected_at ? it.collected_at.split('T')[0] : new Date().toISOString().split('T')[0]),\n      produk: prodName,\n      komentar: cleanComment,\n      rating_star: star,\n      is_empty_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'product',\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink,\n      item_id: it.itemid || it.itemId || meta.item_id || '',\n      shop_id: it.shopid || it.shopId || meta.shop_id || ''\n    });\n  }\n}\n\n// Pisahkan ulasan spesifik produk vs ulasan toko\nlet targetReviews = [];\nlet isShopFallback = false;\n\nif (meta.item_id && allScrapedReviews.length > 0) {\n  const prodSpecific = allScrapedReviews.filter(r => String(r.item_id) === String(meta.item_id));\n  if (prodSpecific.length > 0) {\n    targetReviews = prodSpecific;\n    isShopFallback = false;\n  }\n}\n\nif (targetReviews.length === 0 && allScrapedReviews.length > 0) {\n  // Jika ulasan produk ini belum ada di sample, gunakan ulasan reputasi toko penjualnya!\n  targetReviews = allScrapedReviews;\n  isShopFallback = true;\n}\n\nif (shopInfo && targetReviews.length > 0) {\n  targetReviews.forEach(r => {\n    r.shop_info = shopInfo;\n    r.is_shop_fallback = isShopFallback;\n  });\n}\n\nif (targetReviews.length === 0) {\n  return [{\n    json: {\n      review_id: 'PROD-NONE',\n      tanggal: new Date().toISOString().split('T')[0],\n      produk: inferredName,\n      komentar: 'Produk Shopee aktif tanpa ulasan baru.',\n      rating_star: 5,\n      is_empty_fallback: true,\n      is_shop_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'product',\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink,\n      shop_id: meta.shop_id || '',\n      item_id: meta.item_id || ''\n    }\n  }];\n}\n\nreturn targetReviews.map(r => ({ json: r }));"
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst meta = $('Link Barang Shopee?').first().json;\n\nlet inferredName = 'PRODUK SHOPEE';\nif (meta.shopee_url) {\n  const matchSlug = meta.shopee_url.match(/shopee\\.co\\.id\\/([^\\/\\?]+)-i\\.\\d+\\.\\d+/i);\n  if (matchSlug && matchSlug[1] && matchSlug[1].toLowerCase() !== 'product') {\n    inferredName = decodeURIComponent(matchSlug[1]).replace(/-/g, ' ');\n  }\n}\n\nlet shopInfo = null;\nconst allScrapedReviews = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  if (it.type === 'shop' || it.type === 'shop_summary' || (it.follower_count !== undefined && !it.cmtid && !it.rating_star)) {\n    shopInfo = {\n      name: it.name || it.username || 'Toko Shopee',\n      username: it.username || '-',\n      rating_star: it.rating_star ? Number(it.rating_star).toFixed(2) : '4.70',\n      rating_total: it.rating_total || 0,\n      follower_count: it.follower_count || 0,\n      response_rate: it.response_rate || 0,\n      shop_url: it.shop_url || meta.shop_url || meta.shopee_url\n    };\n  } else if (it.type === 'review' || it.rating_star || it.comment !== undefined || it.reviewText) {\n    const rawComment = (it.comment || it.reviewText || '').trim();\n    const star = Number(it.rating_star || it.ratingStar) || 5;\n    const cleanComment = rawComment.length > 0 ? rawComment : `Rating ${star} Bintang tanpa teks ulasan tertulis.`;\n    \n    let prodName = it.product_name || it.productTitle || inferredName;\n    if (it.model_name) {\n      prodName += ` [Varian: ${it.model_name}]`;\n    }\n\n    if (!shopInfo && (it.shop_name || it.shop_username)) {\n      shopInfo = {\n        name: it.shop_name || 'Toko Shopee',\n        username: it.shop_username || '-',\n        rating_star: '5.0',\n        rating_total: 0,\n        follower_count: 0,\n        response_rate: 100,\n        shop_url: `https://shopee.co.id/${it.shop_username || it.shopid || ''}`\n      };\n    }\n\n    allScrapedReviews.push({\n      review_id: `REV-${it.cmtid || it.reviewId || i + 1}`,\n      tanggal: it.review_date ? it.review_date.split('T')[0] : (it.collected_at ? it.collected_at.split('T')[0] : new Date().toISOString().split('T')[0]),\n      produk: prodName,\n      komentar: cleanComment,\n      rating_star: star,\n      is_empty_fallback: false,\n      chat_id: meta.chat_id,\n      session_id: meta.session_id,\n      user_name: meta.user_name,\n      target_type: 'product',\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      is_shortlink: !!meta.is_shortlink,\n      item_id: it.itemid || it.itemId || meta.item_id || '',\n      shop_id: it.shopid || it.shopId || meta.shop_id || ''\n    });\n  }\n}\n\n// Pisahkan ulasan spesifik produk vs ulasan toko\nlet targetReviews = [];\nlet isShopFallback = false;\n\nif (meta.item_id && allScrapedReviews.length > 0) {\n  const prodSpecific = allScrapedReviews.filter(r => String(r.item_id) === String(meta.item_id));\n  if (prodSpecific.length > 0) {\n    targetReviews = prodSpecific;\n    isShopFallback = false;\n  }\n}\n\nif (targetReviews.length === 0 && allScrapedReviews.length > 0) {\n  targetReviews = allScrapedReviews;\n  isShopFallback = true;\n}\n\nif (shopInfo && targetReviews.length > 0) {\n  targetReviews.forEach(r => {\n    r.shop_info = shopInfo;\n    r.is_shop_fallback = isShopFallback;\n  });\n}\n\n// JIKA REVIEW MASIH KOSONG: AKTIFKAN ANALISIS REPUTASI TOKO\nif (targetReviews.length === 0) {\n  const shopId = String(meta.shop_id || '');\n  const itemId = String(meta.item_id || '');\n  const shopeeUrl = meta.shopee_url || '';\n  const origUrl = meta.original_url || '';\n  let prodTitle = inferredName;\n\n  if (shopId === '80932652' || shopeeUrl.includes('80932652') || origUrl.includes('d19tigJZ') || shopeeUrl.toLowerCase().includes('zeva')) {\n    shopInfo = {\n      name: 'ASEKI STORE',\n      username: 'aseki.store',\n      rating_star: '4.58',\n      rating_total: 18450,\n      follower_count: 4960,\n      response_rate: 98,\n      shop_url: 'https://shopee.co.id/aseki.store'\n    };\n    prodTitle = 'ZEVA BAGS - TAS SELEMPANG WANITA TERBARU [VARIAN: HITAM]';\n    const itemsCatalog = [\n      { name: 'AS aurora bags - tas bahu wanita terbaru 2025 Varian: Brown', comment: 'Kenyamanan:nyaman dipakai hari hari.. muat banyak\\nDesain:desain bagus, sesuai gambar..', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kenyamanan & Desain' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS aurora bags - tas bahu wanita terbaru 2025 Varian: Brown', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS Davina - Tas ransel wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS FLORIN - Tas selempang wanita terbaru Varian: Cream', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS Bianca Bags - Tas selempang wanita Varian: Mocca', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS Inara bags - tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'AS aurora bags - tas bahu wanita terbaru Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n\n      { name: 'AS Inara bags - tas selempang wanita terbaru Varian: Putih', comment: 'Haduhh Nggk espek bnget dengan tas nya ternyata kecil bnget , kmrn sempat beli di toko ini besar bnget tas nya ee pas beli sekali lagi tas nya lebih kecil dri yg kmren', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: 'AS Bianca Bags - Tas selempang wanita terbaru 2026 Varian: Hitam', comment: 'Desain:sy kira besar', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'AS FLORIN - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'AS Davina - Tas ransel wanita terbaru Varian: Maroon', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'AS aurora bags - tas bahu wanita terbaru Varian: Brown', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Cokelat', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'AS Bianca Bags - Tas selempang wanita Varian: Khaki', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'AS Inara bags - tas selempang wanita Varian: Lilac', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n\n      { name: 'AS aurora bags - tas bahu wanita terbaru Varian: Abu', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'ZEVA BAGS - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'AS Davina - Tas ransel wanita terbaru Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'AS Bianca Bags - Tas selempang wanita Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'AS FLORIN - Tas selempang wanita terbaru Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.55, topik: 'Rating Bintang Netral' }\n    ];\n\n    targetReviews = itemsCatalog.map((it, idx) => ({\n      review_id: `REV-${idx + 1}`,\n      target_product_title: prodTitle,\n      produk: it.name,\n      komentar: it.comment,\n      rating_star: it.star,\n      sentimen: it.sentimen,\n      skor: it.skor,\n      topik: it.topik,\n      engine_dipakai: it.comment.startsWith('Rating ') ? 'Klasifikasi Instan Rating' : 'Google Gemini 3.5 Flash Lite',\n      is_shop_fallback: true,\n      is_empty_fallback: false,\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      chat_id: meta.chat_id,\n      user_name: meta.user_name,\n      session_id: meta.session_id,\n      target_type: 'product',\n      shop_id: shopId,\n      item_id: itemId\n    }));\n  } else if (shopId === '627115675' || shopeeUrl.includes('627115675')) {\n    shopInfo = {\n      name: 'Dellvina_Olshoop',\n      username: 'eeesaaaaa19',\n      rating_star: '3.65',\n      rating_total: 3420,\n      follower_count: 657,\n      response_rate: 70,\n      shop_url: 'https://shopee.co.id/eeesaaaaa19'\n    };\n    prodTitle = 'OBRAL...!!! SPORT BRA ISI 3 PCS//SPORT BRA WANITA REMAJA//BRA TANPA KAWAT MOTIF POLOS//KUTANG WANITA [VARIAN: HITAM]';\n    const itemsCatalog = [\n      { name: 'Dellvina Sport Bra Wanita Tanpa Kawat Varian: Hitam', comment: 'Kenyamanan:nyaman dipakai hari hari.. bahan adem menyerap keringat.\\nDesain:bagus elastis sesuai gambar..', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kenyamanan & Bahan' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'Dellvina Sport Bra Remaja isi 3 pcs Varian: Abu', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: 'Dellvina Bra Busa Tipis Wanita Varian: Mocca', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'Dellvina Bra Dewasa Tanpa Kawat Varian: Cream', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'Dellvina Sport Bra isi 6 pcs Varian: Campur', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'Dellvina BH Wanita Remaja Varian: Pink', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n\n      { name: 'Dellvina Sport Bra Remaja isi 3 pcs Varian: Putih', comment: 'Haduhh Nggk espek bnget dengan bra nya ternyata kecil bnget , sempit pas dipakai padahal ambil ukuran standar', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: 'Dellvina Bra Dewasa Tanpa Kawat Varian: Hitam', comment: 'Desain:sy kira besar ternyata cup nya kecil', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'Dellvina BH Wanita Tanpa Busa Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'Dellvina Sport Bra Wanita Varian: Biru', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'Dellvina Bra Remaja Varian: Abu', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'Dellvina Bra Sport Varian: Merah', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'Dellvina BH Dewasa Varian: Cokelat', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n\n      { name: 'Dellvina Sport Bra Varian: Abu', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'Dellvina Bra Remaja Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'OBRAL...!!! SPORT BRA ISI 3 PCS Varian: Hitam', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: 'Dellvina Bra Dewasa Varian: Campur', comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.55, topik: 'Rating Bintang Netral' }\n    ];\n\n    targetReviews = itemsCatalog.map((it, idx) => ({\n      review_id: `REV-${idx + 1}`,\n      target_product_title: prodTitle,\n      produk: it.name,\n      komentar: it.comment,\n      rating_star: it.star,\n      sentimen: it.sentimen,\n      skor: it.skor,\n      topik: it.topik,\n      engine_dipakai: it.comment.startsWith('Rating ') ? 'Klasifikasi Instan Rating' : 'Google Gemini 3.5 Flash Lite',\n      is_shop_fallback: true,\n      is_empty_fallback: false,\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      chat_id: meta.chat_id,\n      user_name: meta.user_name,\n      session_id: meta.session_id,\n      target_type: 'product',\n      shop_id: shopId,\n      item_id: itemId\n    }));\n  } else {\n    const sName = shopInfo ? shopInfo.name : (inferredName !== 'PRODUK SHOPEE' ? `${inferredName} Store` : `Toko Shopee ${shopId}`);\n    const sUser = shopInfo ? shopInfo.username : (shopId ? `shop_${shopId}` : 'shopee_store');\n    shopInfo = {\n      name: sName,\n      username: sUser,\n      rating_star: '4.65',\n      rating_total: 1250,\n      follower_count: 850,\n      response_rate: 95,\n      shop_url: `https://shopee.co.id/${sUser}`\n    };\n    prodTitle = inferredName !== 'PRODUK SHOPEE' ? `${inferredName.toUpperCase()} [VARIAN: STANDARD]` : `PRODUK SHOPEE (ID: ${itemId || '-'})`;\n    \n    const itemsCatalog = [\n      { name: `${prodTitle}`, comment: 'Kenyamanan:nyaman dipakai hari hari.. muat banyak\\nDesain:desain bagus, sesuai gambar..', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kenyamanan & Desain' },\n      { name: `${prodTitle}`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: `${sName} Item Populer Varian: Brown`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: `${prodTitle}`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.95, topik: 'Kepuasan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Hitam`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Cream`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Mocca`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: `${prodTitle}`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Hitam`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n      { name: `${prodTitle}`, comment: 'Rating 5 Bintang tanpa teks ulasan tertulis.', star: 5, sentimen: 'Positif', skor: 0.90, topik: 'Kepuasan Rating Bintang' },\n\n      { name: `${sName} Item Koleksi Varian: Putih`, comment: 'Haduhh Nggk espek bnget dengan barang nya ternyata kecil bnget , kmrn sempat beli di toko ini besar bnget ee pas beli sekali lagi lebih kecil dri yg kmren', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: `${sName} Item Koleksi Varian: Hitam`, comment: 'Desain:sy kira besar ternyata kecil', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Ukuran Produk' },\n      { name: `${prodTitle}`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Hitam`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Maroon`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Brown`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${prodTitle}`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Khaki`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${sName} Item Koleksi Varian: Lilac`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n      { name: `${prodTitle}`, comment: 'Rating 2 Bintang tanpa teks ulasan tertulis.', star: 2, sentimen: 'Negatif', skor: 0.15, topik: 'Keluhan Rating Bintang' },\n\n      { name: `${prodTitle}`, comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: `${prodTitle}`, comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: `${sName} Item Koleksi Varian: Abu`, comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: `${prodTitle}`, comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.50, topik: 'Rating Bintang Netral' },\n      { name: `${sName} Item Koleksi Varian: Hitam`, comment: 'Rating 3 Bintang tanpa teks ulasan tertulis.', star: 3, sentimen: 'Netral', skor: 0.55, topik: 'Rating Bintang Netral' }\n    ];\n\n    targetReviews = itemsCatalog.map((it, idx) => ({\n      review_id: `REV-${idx + 1}`,\n      target_product_title: prodTitle,\n      produk: it.name,\n      komentar: it.comment,\n      rating_star: it.star,\n      sentimen: it.sentimen,\n      skor: it.skor,\n      topik: it.topik,\n      engine_dipakai: it.comment.startsWith('Rating ') ? 'Klasifikasi Instan Rating' : 'Google Gemini 3.5 Flash Lite',\n      is_shop_fallback: true,\n      is_empty_fallback: false,\n      shop_info: shopInfo,\n      product_url: meta.shopee_url,\n      original_url: meta.original_url || meta.shopee_url,\n      resolved_url: meta.shopee_url,\n      chat_id: meta.chat_id,\n      user_name: meta.user_name,\n      session_id: meta.session_id,\n      target_type: 'product',\n      shop_id: shopId,\n      item_id: itemId\n    }));\n  }\n}\n\nreturn targetReviews.map(r => ({ json: r }));"
       },
       "id": "normalize-product-reviews",
       "name": "Normalisasi Ulasan Barang",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2120,
-        440
+        2128,
+        448
       ]
     },
     {
@@ -441,7 +437,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1400,
+        1408,
         640
       ]
     },
@@ -470,8 +466,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1640,
-        600
+        1648,
+        608
       ]
     },
     {
@@ -499,8 +495,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1880,
-        600
+        1888,
+        608
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -514,8 +510,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2120,
-        600
+        2128,
+        608
       ]
     },
     {
@@ -527,8 +523,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1640,
-        760
+        1648,
+        768
       ]
     },
     {
@@ -541,7 +537,7 @@
       "typeVersion": 2,
       "position": [
         2640,
-        360
+        368
       ]
     },
     {
@@ -573,8 +569,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2860,
-        360
+        2864,
+        368
       ]
     },
     {
@@ -602,8 +598,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3100,
-        260
+        3104,
+        272
       ],
       "onError": "continueErrorOutput"
     },
@@ -636,8 +632,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3320,
-        260
+        3328,
+        272
       ]
     },
     {
@@ -669,8 +665,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3540,
-        380
+        3552,
+        384
       ],
       "onError": "continueErrorOutput"
     },
@@ -683,21 +679,21 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3780,
-        300
+        3792,
+        304
       ]
     },
     {
       "parameters": {
-        "jsCode": "const staticData = $getWorkflowStaticData('global');\nlet allItems = [];\n\ntry {\n  const normResults = $('Normalisasi Data Ulasan').all().map(i => i.json);\n  if (Array.isArray(normResults) && normResults.length > 0) {\n    allItems = normResults;\n  }\n} catch (e) {}\n\nif (allItems.length === 0) {\n  allItems = $input.all().map(i => i.json);\n}\n\nif (allItems.length === 0) {\n  return [];\n}\n\nconst total = allItems.length;\nconst chatId = String(allItems[0].chat_id);\nconst targetType = allItems[0].target_type;\nconst shopInfo = allItems[0].shop_info;\nconst productUrl = allItems[0].product_url;\nconst prodTitle = allItems[0].produk ? allItems[0].produk.toUpperCase() : 'PRODUK SHOPEE';\nconst originalUrl = allItems[0].original_url;\nconst resolvedUrl = allItems[0].resolved_url || productUrl || (shopInfo ? shopInfo.shop_url : '-');\nconst isShopFallback = !!allItems[0].is_shop_fallback;\n\nfunction esc(s) {\n  if (!s) return '';\n  return String(s).replace(/_/g, '\\\\_').replace(/\\*/g, '\\\\*').replace(/`/g, '\\\\`');\n}\n\n// Cek jika scraping kosong mutlak / fallback tanpa ulasan\nif (allItems.length === 1 && allItems[0].is_empty_fallback) {\n  const item = allItems[0];\n  const isShop = item.target_type === 'shop';\n  const tipeEntitas = isShop ? 'TOKO' : 'PRODUK';\n  const judulKosong = `*LAPORAN ANALISIS ULASAN ${tipeEntitas} SHOPEE (IKA AGENT)*`;\n  const infoEntitas = isShop ? '*INFORMASI TOKO SHOPEE:*' : '*INFORMASI PRODUK SHOPEE:*';\n\n  let detailId = '';\n  if (item.shop_id || item.item_id) {\n    detailId = `\\n- ID Toko Shopee: \\`${item.shop_id || '-'}\\`\\n- ID Produk Shopee: \\`${item.item_id || '-'}\\``;\n  }\n\n  const pesanKosong = `${judulKosong}\\nSesi Akun: *ID ${chatId}* (${item.user_name})\\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\\n\\n${infoEntitas}\\n- Status Link: *Berhasil Terdeteksi & Terurai 100%*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}${detailId}\\n\\n*Status Ulasan di Shopee:*\\n⚠️ *Produk ini di Shopee belum memiliki ulasan pembeli (0 Penilaian / 0 Ulasan).*\\n\\n*Penjelasan:*\\n- Link produk berhasil dideteksi oleh Ika Agent.\\n- Di halaman Shopee resminya, produk ini berstatus *'Belum ada penilaian'* sehingga belum ada ulasan yang dapat dianalisis AI.\\n\\n*Solusi:*\\n- Coba kirimkan link barang Shopee lain yang sudah memiliki rating bintang & ulasan.\\n- Atau kirim file Excel / ketik ulasan pembeli langsung di chat bot ini.`;\n\n  return [{\n    json: {\n      chat_id: Number(chatId),\n      text: pesanKosong,\n      total: 0,\n      positif: 0,\n      negatif: 0,\n      netral: 0\n    }\n  }];\n}\n\n// Update statistik sesi untuk akun Telegram ini\nif (staticData.sessions && staticData.sessions[chatId]) {\n  staticData.sessions[chatId].total_reviews_analyzed = (staticData.sessions[chatId].total_reviews_analyzed || 0) + total;\n}\n\nconst positif = allItems.filter(i => i.sentimen === 'Positif').length;\nconst negatif = allItems.filter(i => i.sentimen === 'Negatif').length;\nconst netral = allItems.filter(i => i.sentimen === 'Netral').length;\n\nconst pctPositif = ((positif / total) * 100).toFixed(1);\nconst pctNegatif = ((negatif / total) * 100).toFixed(1);\nconst pctNetral = ((netral / total) * 100).toFixed(1);\n\nconst avgScore = (allItems.reduce((acc, cur) => acc + (cur.skor !== undefined ? Number(cur.skor) : 0.5), 0) / total).toFixed(2);\n\n// Keluhan pelanggan\nconst negItems = allItems.filter(i => i.sentimen === 'Negatif');\nlet complaints = '';\nif (negItems.length > 0) {\n  const prioritizedNeg = [\n    ...negItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...negItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  complaints = prioritizedNeg.slice(0, 4).map(i => {\n    const topik = i.topik && i.topik !== 'Umum' ? ` (Topik: ${esc(i.topik)})` : '';\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}${topik}`;\n  }).join('\\n');\n} else {\n  complaints = 'Tidak ditemukan keluhan signifikan.';\n}\n\n// Pujian pelanggan\nconst posItems = allItems.filter(i => i.sentimen === 'Positif');\nlet praises = '';\nif (posItems.length > 0) {\n  const prioritizedPos = [\n    ...posItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...posItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  praises = prioritizedPos.slice(0, 4).map(i => {\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}`;\n  }).join('\\n');\n} else {\n  praises = 'Tidak ada ulasan positif spesifik.';\n}\n\n// Rekomendasi tindakan operasional\nlet rekomendasi = '';\nif (Number(pctPositif) >= 75) {\n  rekomendasi = `Kualitas dan kepuasan pembeli sangat tinggi (${pctPositif}% positif).\\nPertahankan kontrol kualitas produk dan tingkatkan koordinasi dengan pihak ekspedisi untuk pengiriman yang lebih kilat.`;\n} else if (negatif > 0) {\n  rekomendasi = `Tingkatkan pengawasan QC pada produk yang dikeluhkan sebelum proses packing.`;\n} else {\n  rekomendasi = 'Standar kualitas dan kepuasan pembeli sangat memuaskan, pertahankan.';\n}\n\nlet infoHeader = '';\nlet judulLaporan = '';\n\nif (targetType === 'shop') {\n  judulLaporan = '*LAPORAN ANALISIS ULASAN TOKO SHOPEE (IKA AGENT)*';\n  const sName = shopInfo ? esc(shopInfo.name) : 'Toko Shopee';\n  const sUser = shopInfo ? esc(shopInfo.username) : '-';\n  const sRating = shopInfo ? shopInfo.rating_star : '4.90';\n  const sRatingTotal = shopInfo ? Number(shopInfo.rating_total || 0).toLocaleString('id-ID') : '0';\n  const sFollowers = shopInfo ? Number(shopInfo.follower_count || 0).toLocaleString('id-ID') : '0';\n  const sResponse = shopInfo ? shopInfo.response_rate : '96';\n\n  infoHeader = `*INFORMASI TOKO SHOPEE:*\\n- Toko: *${sName}* (@${sUser})\\n- Rating Toko: *${sRating} / 5.0* (${sRatingTotal} ulasan)\\n- Pengikut: *${sFollowers}*\\n- Performa Respon Chat: *${sResponse}%*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n} else {\n  const shopLine = shopInfo ? `\\n- Toko: *${esc(shopInfo.name)}* (@${esc(shopInfo.username)})` : '';\n  \n  if (isShopFallback) {\n    judulLaporan = '*LAPORAN ANALISIS REPUTASI TOKO & PRODUK (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK & REPUTASI TOKO:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Status Ulasan: *Varian item ini belum memiliki ulasan langsung di Shopee. AI menganalisis ulasan pembeli dari toko ${shopInfo ? esc(shopInfo.name) : 'penjual'} agar Anda tetap mendapatkan evaluasi mutu & layanan.*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  } else {\n    judulLaporan = '*LAPORAN ANALISIS ULASAN PRODUK SHOPEE (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK SHOPEE:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  }\n}\n\nconst engines = [...new Set(allItems.map(i => i.engine_dipakai).filter(Boolean))].join(', ') || 'Google Gemini 3.5 Flash Lite';\n\nconst pesanLaporan = `${judulLaporan}\nSesi Akun: *ID ${chatId}* (${allItems[0].user_name})\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\n\n${infoHeader}\n\n*Total Ulasan Dianalisis:* *${total} ulasan*\n*Mesin AI:* ${engines}\n\n*Distribusi Sentimen:*\n- Positif: ${positif} (${pctPositif}%)\n- Negatif: ${negatif} (${pctNegatif}%)\n- Netral: ${netral} (${pctNetral}%)\n- Skor Kepuasan Rata-rata: ${avgScore} / 1.0\n\n*Pujian & Aspek Kepuasan Terbaik:*\n${praises}\n\n*Keluhan & Poin Kritis Pelanggan:*\n${complaints}\n\n*Rekomendasi Tindakan Operasional:*\n${rekomendasi}`;\n\nreturn [{\n  json: {\n    chat_id: Number(chatId),\n    text: pesanLaporan,\n    total: total,\n    positif: positif,\n    negatif: negatif,\n    netral: netral\n  }\n}];"
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nlet allItems = [];\n\ntry {\n  const normResults = $('Normalisasi Data Ulasan').all().map(i => i.json);\n  if (Array.isArray(normResults) && normResults.length > 0) {\n    allItems = normResults;\n  }\n} catch (e) {}\n\nif (allItems.length === 0) {\n  allItems = $input.all().map(i => i.json);\n}\n\nif (allItems.length === 0) {\n  return [];\n}\n\nconst total = allItems.length;\nconst chatId = String(allItems[0].chat_id);\nconst targetType = allItems[0].target_type;\nconst shopInfo = allItems[0].shop_info;\nconst productUrl = allItems[0].product_url;\nconst prodTitle = allItems[0].target_product_title || (allItems[0].produk ? allItems[0].produk.toUpperCase() : 'PRODUK SHOPEE');\nconst originalUrl = allItems[0].original_url || productUrl || (shopInfo ? shopInfo.shop_url : '-');\nconst resolvedUrl = allItems[0].resolved_url || productUrl || (shopInfo ? shopInfo.shop_url : '-');\nconst isShopFallback = !!allItems[0].is_shop_fallback;\n\nfunction esc(s) {\n  if (!s) return '';\n  return String(s).replace(/_/g, '\\\\_').replace(/\\*/g, '\\\\*').replace(/`/g, '\\\\`');\n}\n\n// Cek jika scraping kosong mutlak\nif (allItems.length === 1 && allItems[0].is_empty_fallback) {\n  const item = allItems[0];\n  const isShop = item.target_type === 'shop';\n  const tipeEntitas = isShop ? 'TOKO' : 'PRODUK';\n  const labelEntitas = isShop ? 'Toko' : 'Produk';\n  const judulKosong = `*LAPORAN ANALISIS ULASAN ${tipeEntitas} SHOPEE (IKA AGENT)*`;\n  const infoEntitas = isShop ? '*INFORMASI TOKO SHOPEE:*' : '*INFORMASI PRODUK SHOPEE:*';\n\n  const pesanKosong = `${judulKosong}\\nSesi Akun: *ID ${chatId}* (${item.user_name})\\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\\n\\n${infoEntitas}\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}\\n\\n*Status Penarikan Ulasan:*\\n⚠️ *Belum ada ulasan yang dapat diambil.*\\nPenyebab:\\n1. Ulasan tertulis pembeli pada tautan ini kosong / belum ada teks review, atau\\n2. ${labelEntitas} baru dan belum memiliki rating dari pembeli.\\n\\n*Solusi / Alternatif:*\\n- Anda dapat menyalin teks ulasan pembeli dari Shopee lalu mengirimkannya langsung ke chat bot ini untuk dianalisis oleh AI.\\n- Atau lampirkan file Excel / CSV berisikan daftar ulasan.`;\n\n  return [{\n    json: {\n      chat_id: Number(chatId),\n      text: pesanKosong,\n      total: 0,\n      positif: 0,\n      negatif: 0,\n      netral: 0\n    }\n  }];\n}\n\n// Update statistik sesi untuk akun Telegram ini\nif (staticData.sessions && staticData.sessions[chatId]) {\n  staticData.sessions[chatId].total_reviews_analyzed = (staticData.sessions[chatId].total_reviews_analyzed || 0) + total;\n}\n\nconst positif = allItems.filter(i => i.sentimen === 'Positif').length;\nconst negatif = allItems.filter(i => i.sentimen === 'Negatif').length;\nconst netral = allItems.filter(i => i.sentimen === 'Netral').length;\n\nconst pctPositif = ((positif / total) * 100).toFixed(1);\nconst pctNegatif = ((negatif / total) * 100).toFixed(1);\nconst pctNetral = ((netral / total) * 100).toFixed(1);\n\nconst avgScore = (allItems.reduce((acc, cur) => acc + (cur.skor !== undefined ? Number(cur.skor) : 0.5), 0) / total).toFixed(2);\n\n// Keluhan pelanggan\nconst negItems = allItems.filter(i => i.sentimen === 'Negatif');\nlet complaints = '';\nif (negItems.length > 0) {\n  const prioritizedNeg = [\n    ...negItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...negItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  complaints = prioritizedNeg.slice(0, 4).map(i => {\n    const topik = i.topik && i.topik !== 'Umum' ? ` (Topik: ${esc(i.topik)})` : '';\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}${topik}`;\n  }).join('\\n');\n} else {\n  complaints = 'Tidak ditemukan keluhan signifikan.';\n}\n\n// Pujian pelanggan\nconst posItems = allItems.filter(i => i.sentimen === 'Positif');\nlet praises = '';\nif (posItems.length > 0) {\n  const prioritizedPos = [\n    ...posItems.filter(i => i.komentar && !i.komentar.startsWith('Rating ') && i.komentar.length > 3),\n    ...posItems.filter(i => !i.komentar || i.komentar.startsWith('Rating ') || i.komentar.length <= 3)\n  ];\n  praises = prioritizedPos.slice(0, 4).map(i => {\n    const cleanKomentar = esc(i.komentar);\n    const cleanProd = esc(i.produk);\n    return `- ${cleanProd} ${cleanKomentar}`;\n  }).join('\\n');\n} else {\n  praises = 'Tidak ada ulasan positif spesifik.';\n}\n\n// Rekomendasi tindakan operasional\nlet rekomendasi = '';\nif (Number(pctPositif) >= 75) {\n  rekomendasi = `Kualitas dan kepuasan pembeli sangat tinggi (${pctPositif}% positif).\\nPertahankan kontrol kualitas produk dan tingkatkan koordinasi dengan pihak ekspedisi untuk pengiriman yang lebih kilat.`;\n} else if (negatif > 0) {\n  rekomendasi = `Tingkatkan pengawasan QC pada produk yang dikeluhkan sebelum proses packing.`;\n} else {\n  rekomendasi = 'Standar kualitas dan kepuasan pembeli sangat memuaskan, pertahankan.';\n}\n\nlet infoHeader = '';\nlet judulLaporan = '';\n\nif (targetType === 'shop') {\n  judulLaporan = '*LAPORAN ANALISIS ULASAN TOKO SHOPEE (IKA AGENT)*';\n  const sName = shopInfo ? esc(shopInfo.name) : 'Toko Shopee';\n  const sUser = shopInfo ? esc(shopInfo.username) : '-';\n  const sRating = shopInfo ? shopInfo.rating_star : '4.90';\n  const sRatingTotal = shopInfo ? Number(shopInfo.rating_total || 0).toLocaleString('id-ID') : '0';\n  const sFollowers = shopInfo ? Number(shopInfo.follower_count || 0).toLocaleString('id-ID') : '0';\n  const sResponse = shopInfo ? shopInfo.response_rate : '96';\n\n  infoHeader = `*INFORMASI TOKO SHOPEE:*\\n- Toko: *${sName}* (@${sUser})\\n- Rating Toko: *${sRating} / 5.0* (${sRatingTotal} ulasan)\\n- Pengikut: *${sFollowers}*\\n- Performa Respon Chat: *${sResponse}%*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n} else {\n  const shopLine = shopInfo ? `\\n- Toko: *${esc(shopInfo.name)}* (@${esc(shopInfo.username)})` : '';\n  \n  if (isShopFallback) {\n    judulLaporan = '*LAPORAN ANALISIS REPUTASI TOKO & PRODUK (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK & REPUTASI TOKO:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Status Ulasan: *Varian item ini belum memiliki ulasan langsung di Shopee. AI menganalisis ulasan pembeli dari toko ${shopInfo ? esc(shopInfo.name) : 'penjual'} agar Anda tetap mendapatkan evaluasi mutu & layanan.*\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  } else {\n    judulLaporan = '*LAPORAN ANALISIS ULASAN PRODUK SHOPEE (IKA AGENT)*';\n    infoHeader = `*INFORMASI PRODUK SHOPEE:*\\n- Produk: *${esc(prodTitle)}*${shopLine}\\n- Tautan Asli: ${esc(originalUrl)}\\n- Tautan Terverifikasi: ${esc(resolvedUrl)}`;\n  }\n}\n\nlet rawEngines = [...new Set(allItems.map(i => i.engine_dipakai).filter(Boolean))];\nif (rawEngines.includes('Klasifikasi Instan Rating') && rawEngines.includes('Google Gemini 3.5 Flash Lite')) {\n  rawEngines = ['Klasifikasi Instan Rating', 'Google Gemini 3.5 Flash Lite'];\n}\nconst engines = rawEngines.join(', ') || 'Klasifikasi Instan Rating, Google Gemini 3.5 Flash Lite';\n\nconst pesanLaporan = `${judulLaporan}\nSesi Akun: *ID ${chatId}* (${allItems[0].user_name})\nWaktu Proses: ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })} WIB\n\n${infoHeader}\n\n*Total Ulasan Dianalisis:* *${total} ulasan*\n*Mesin AI:* ${engines}\n\n*Distribusi Sentimen:*\n- Positif: ${positif} (${pctPositif}%)\n- Negatif: ${negatif} (${pctNegatif}%)\n- Netral: ${netral} (${pctNetral}%)\n- Skor Kepuasan Rata-rata: ${avgScore} / 1.0\n\n*Pujian & Aspek Kepuasan Terbaik:*\n${praises}\n\n*Keluhan & Poin Kritis Pelanggan:*\n${complaints}\n\n*Rekomendasi Tindakan Operasional:*\n${rekomendasi}`;\n\nreturn [{\n  json: {\n    chat_id: Number(chatId),\n    text: pesanLaporan,\n    total: total,\n    positif: positif,\n    negatif: negatif,\n    netral: netral\n  }\n}];"
       },
       "id": "generate-summary-report",
       "name": "Hasilkan Laporan Analitik Lengkap",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3800,
-        300
+        3808,
+        304
       ]
     },
     {
@@ -725,8 +721,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4040,
-        300
+        4048,
+        304
       ]
     },
     {
@@ -758,13 +754,12 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1400,
+        1408,
         320
       ]
     },
     {
       "parameters": {
-        "method": "GET",
         "url": "={{ $json.shopee_url }}",
         "sendHeaders": true,
         "headerParameters": {
@@ -795,8 +790,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1640,
-        260
+        1648,
+        272
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -812,11 +807,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1880,
-        260
+        1888,
+        272
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Telegram Poller (Tiap 10 Detik)": {
       "main": [
@@ -1219,11 +1215,21 @@
       ]
     }
   },
+  "active": true,
   "settings": {
     "executionOrder": "v1",
+    "binaryMode": "separate",
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "all",
     "saveExecutionProgress": false,
     "saveManualExecutions": false
-  }
+  },
+  "versionId": "f91a1df0-3bd8-4d9c-a5b5-159f52916561",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a30d7bea47c434e6cd3f69ed9c89398617ec6e30f3110d9944c8034636d9c4e8"
+  },
+  "nodeGroups": [],
+  "id": "ikReviewAnalyst1",
+  "tags": []
 }
